@@ -65,4 +65,21 @@ export const authService = {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(SESSION_KEY);
   },
+
+  async forgotPassword(email) {
+    return await api.post("/auth/forgot-password", { email });
+  },
+
+  async verifyResetOtp(email, otp) {
+    return await api.post("/auth/verify-reset-otp", { email, otp });
+  },
+
+  async resetPassword({ email, resetToken, password, confirmPassword }) {
+    return await api.post("/auth/reset-password", {
+      email,
+      resetToken,
+      password,
+      confirmPassword,
+    });
+  },
 };
