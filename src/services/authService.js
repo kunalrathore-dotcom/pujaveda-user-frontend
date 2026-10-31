@@ -4,8 +4,12 @@ const TOKEN_KEY = "sonic_user_token";
 const SESSION_KEY = "sonic_user_auth_session";
 
 export const authService = {
-  async login({ email, password }) {
-    const data = await api.post("/auth/login", { email, password });
+  async login(credentials, maybePassword) {
+    const payload =
+      typeof credentials === "string"
+        ? { email: credentials, password: maybePassword }
+        : credentials;
+    const data = await api.post("/auth/login", payload);
     if (data.token) {
       localStorage.setItem(TOKEN_KEY, data.token);
       localStorage.setItem(SESSION_KEY, JSON.stringify(data.user));

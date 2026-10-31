@@ -47,7 +47,11 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const login = async (credentials) => {
+  const login = async (emailOrCredentials, maybePassword) => {
+    const credentials =
+      typeof emailOrCredentials === "string"
+        ? { email: emailOrCredentials, password: maybePassword }
+        : emailOrCredentials;
     setLoading(true);
     try {
       const loggedInUser = await authService.login(credentials);
