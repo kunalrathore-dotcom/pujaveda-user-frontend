@@ -19,6 +19,7 @@ import { useStore } from "../../context/StoreContext";
 import { useCatalog } from "../../context/CatalogContext";
 import { useAuth } from "../../context/AuthContext";
 import PujavedaLogo from "../common/PujavedaLogo";
+import { resolveImageUrl } from "../../utils/imageHelper";
 
 // Reference categories from pujakisamagri.com/puja-items/
 const DEFAULT_PUJAVEDA_CATEGORIES = [
@@ -173,9 +174,17 @@ export default function Header() {
                   }
                 }}
                 title={isAuthenticated ? user?.name || "Account" : "Sign In"}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F5A623] text-[#2D1C13] hover:bg-[#E09612] transition shadow-xs focus:outline-none"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F5A623] text-[#2D1C13] hover:bg-[#E09612] transition shadow-xs focus:outline-none overflow-hidden"
               >
-                <UserRound size={19} strokeWidth={2.2} />
+                {user?.avatar ? (
+                  <img
+                    src={resolveImageUrl(user.avatar)}
+                    alt={user.name || "User"}
+                    className="h-full w-full object-cover rounded-full"
+                  />
+                ) : (
+                  <UserRound size={19} strokeWidth={2.2} />
+                )}
               </button>
 
               {/* Account Dropdown Menu for Logged In User */}
@@ -188,6 +197,15 @@ export default function Header() {
                     </p>
                     <p className="text-[11px] text-[#2D1C13]/60 truncate">{user?.email}</p>
                   </div>
+
+                  <Link
+                    to="/profile"
+                    onClick={() => setAccountMenuOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-[#2D1C13] hover:bg-[#FAF5ED]"
+                  >
+                    <UserRound size={14} className="text-[#DA9B26]" />
+                    My Profile
+                  </Link>
 
                   <Link
                     to="/orders"
@@ -372,10 +390,19 @@ export default function Header() {
                     <p className="font-serif text-sm font-bold text-[#5C0F17]">{user?.name}</p>
                   </div>
                   <Link
+                    to="/profile"
+                    onClick={closeMenus}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-[#2D1C13] hover:bg-[#FAF5ED]"
+                  >
+                    <UserRound size={14} className="text-[#DA9B26]" />
+                    My Profile
+                  </Link>
+                  <Link
                     to="/orders"
                     onClick={closeMenus}
-                    className="block rounded-lg px-3 py-2 text-xs font-semibold text-[#2D1C13] hover:bg-[#FAF5ED]"
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-[#2D1C13] hover:bg-[#FAF5ED]"
                   >
+                    <Package size={14} className="text-[#DA9B26]" />
                     My Orders
                   </Link>
                   <button

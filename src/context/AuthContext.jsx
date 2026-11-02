@@ -73,6 +73,14 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const updateUser = (updatedUserData) => {
+    setUser((prev) => {
+      const merged = { ...prev, ...updatedUserData };
+      localStorage.setItem("sonic_user_auth_session", JSON.stringify(merged));
+      return merged;
+    });
+  };
+
   const logout = () => {
     authService.logout();
     setUser(null);
@@ -87,6 +95,7 @@ export function AuthProvider({ children }) {
         isAuthenticated: Boolean(user),
         login,
         register,
+        updateUser,
         logout,
       }}
     >

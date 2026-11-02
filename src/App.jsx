@@ -8,6 +8,7 @@ import CartPage from "./pages/CartPage";
 import FavouritesPage from "./pages/FavouritesPage";
 import SearchPage from "./pages/SearchPage";
 import OrdersPage from "./pages/OrdersPage";
+import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
@@ -53,6 +54,7 @@ export default function App() {
           <Route path="/favourites" element={<FavouritesPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />
