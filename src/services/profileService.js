@@ -24,3 +24,4 @@ export const profileService = {
     return await api.post("/user/profile/avatar", formData, true);
   },
 };
+

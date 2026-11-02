@@ -192,14 +192,20 @@ export default function ProfilePage() {
 
   // Address Management
   const handleOpenAddAddress = () => {
+    if (Array.isArray(profile?.addresses) && profile.addresses.length >= 3) {
+      alert("You can save a maximum of 3 addresses. Please remove an existing address first.");
+      return;
+    }
     setEditingAddressIndex(null);
     setAddressForm({
+      name: profile?.name || "",
+      phone: profile?.phone || "",
       street: "",
       city: "",
       state: "",
       postalCode: "",
       country: "India",
-      isDefault: profile?.addresses?.length === 0,
+      isDefault: !profile?.addresses || profile.addresses.length === 0,
     });
     setAddressError(null);
     setShowAddressModal(true);
@@ -208,6 +214,8 @@ export default function ProfilePage() {
   const handleOpenEditAddress = (addr, index) => {
     setEditingAddressIndex(index);
     setAddressForm({
+      name: addr.name || profile?.name || "",
+      phone: addr.phone || profile?.phone || "",
       street: addr.street || "",
       city: addr.city || "",
       state: addr.state || "",
@@ -221,8 +229,26 @@ export default function ProfilePage() {
 
   const handleSaveAddress = async (e) => {
     e.preventDefault();
-    if (!addressForm.street.trim() || !addressForm.city.trim() || !addressForm.state.trim() || !addressForm.postalCode.trim()) {
-      setAddressError("Please fill in all address fields.");
+    const street = addressForm.street.trim();
+    const city = addressForm.city.trim();
+    const state = addressForm.state.trim();
+    const postalCode = addressForm.postalCode.trim();
+
+    if (!street || !city || !state || !postalCode) {
+      setAddressError("Please fill in all required address fields (Street, City, State, PIN Code).");
+      return;
+    }
+
+    if (!/^\d{6}$/.test(postalCode)) {
+      setAddressError("Please enter a valid 6-digit Indian PIN code.");
+      return;
+    }
+
+    const existing = Array.isArray(profile?.addresses) ? [...profile.addresses] : [];
+
+    // Strictly enforce maximum 3 addresses
+    if (editingAddressIndex === null && existing.length >= 3) {
+      setAddressError("You can save a maximum of 3 addresses. Please delete an existing address first.");
       return;
     }
 
@@ -230,19 +256,29 @@ export default function ProfilePage() {
       setSavingAddress(true);
       setAddressError(null);
 
-      const existing = Array.isArray(profile?.addresses) ? [...profile.addresses] : [];
+      const cleanedAddress = {
+        name: addressForm.name.trim(),
+        phone: addressForm.phone.trim(),
+        street,
+        city,
+        state,
+        postalCode,
+        country: addressForm.country.trim() || "India",
+        isDefault: Boolean(addressForm.isDefault),
+      };
+
       let updatedList = [];
 
       if (editingAddressIndex !== null && editingAddressIndex >= 0) {
         // Edit existing
-        updatedList = existing.map((a, i) => (i === editingAddressIndex ? { ...addressForm } : a));
+        updatedList = existing.map((a, i) => (i === editingAddressIndex ? cleanedAddress : a));
       } else {
         // Add new
-        updatedList = [...existing, { ...addressForm }];
+        updatedList = [...existing, cleanedAddress];
       }
 
       // If marked as default, unset other defaults
-      if (addressForm.isDefault) {
+      if (cleanedAddress.isDefault) {
         const targetIdx = editingAddressIndex !== null ? editingAddressIndex : updatedList.length - 1;
         updatedList = updatedList.map((a, i) => ({
           ...a,
@@ -604,20 +640,33 @@ export default function ProfilePage() {
         <section className="rounded-3xl border border-[#EEDBC5] bg-white p-6 sm:p-7 shadow-xs">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EEDBC5]/60 pb-4 mb-5">
             <div>
-              <h2 className="font-serif text-lg font-black text-[#5C0F17]">Saved Delivery Addresses</h2>
-              <p className="text-xs text-neutral-500">Manage addresses for fast, effortless puja checkout</p>
+              <div className="flex items-center gap-2">
+                <h2 className="font-serif text-lg font-black text-[#5C0F17]">Saved Delivery Addresses</h2>
+                <span className="rounded-full bg-[#FAF6F0] border border-[#EEDBC5] px-2.5 py-0.5 text-[11px] font-bold text-[#5C0F17]">
+                  {profile.addresses?.length || 0} / 3
+                </span>
+              </div>
+              <p className="text-xs text-neutral-500 mt-0.5">
+                You can save up to 3 addresses for fast, effortless puja checkout.
+              </p>
             </div>
-            <button
-              type="button"
-              onClick={handleOpenAddAddress}
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#5C0F17] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#4A0D15] transition"
-            >
-              <Plus size={14} /> Add Address
-            </button>
+            {(!profile.addresses || profile.addresses.length < 3) ? (
+              <button
+                type="button"
+                onClick={handleOpenAddAddress}
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#5C0F17] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#4A0D15] transition"
+              >
+                <Plus size={14} /> Add Address
+              </button>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 border border-neutral-300 px-3.5 py-1.5 text-xs font-semibold text-neutral-500 cursor-not-allowed">
+                Maximum 3 Addresses Saved
+              </span>
+            )}
           </div>
 
           {Array.isArray(profile.addresses) && profile.addresses.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {profile.addresses.map((addr, idx) => (
                 <div
                   key={idx}
@@ -634,10 +683,12 @@ export default function ProfilePage() {
                       </span>
                       {addr.isDefault && (
                         <span className="rounded-full bg-[#DA9B26]/15 border border-[#DA9B26]/30 px-2 py-0.5 text-[10px] font-bold text-[#5C0F17]">
-                          Default Delivery Address
+                          Default
                         </span>
                       )}
                     </div>
+                    {addr.name && <p className="font-bold text-neutral-900">{addr.name}</p>}
+                    {addr.phone && <p className="text-[11px] text-neutral-500 mb-1">{addr.phone}</p>}
                     <p className="font-medium text-neutral-700">{addr.street}</p>
                     <p className="text-neutral-600">
                       {addr.city}, {addr.state} {addr.postalCode ? `- ${addr.postalCode}` : ""}
@@ -669,7 +720,7 @@ export default function ProfilePage() {
               <MapPin size={32} className="mx-auto text-neutral-300 mb-2" />
               <h3 className="text-sm font-bold text-neutral-700">No saved addresses yet</h3>
               <p className="text-xs text-neutral-500 mt-0.5">
-                Add your home or temple delivery address to save time on future puja orders.
+                Add your home or temple delivery address to save time on future puja orders. You can save up to 3 addresses.
               </p>
               <button
                 type="button"
@@ -712,11 +763,37 @@ export default function ProfilePage() {
             )}
 
             <form onSubmit={handleSaveAddress} className="space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-[#2D1C13] mb-1">Recipient Name</label>
+                  <input
+                    type="text"
+                    maxLength={50}
+                    placeholder="e.g. Kunal Rathore"
+                    value={addressForm.name}
+                    onChange={(e) => setAddressForm({ ...addressForm, name: e.target.value })}
+                    className="w-full rounded-xl border border-neutral-300 px-3.5 py-2 text-xs outline-none focus:border-[#5C0F17]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-[#2D1C13] mb-1">Phone Number</label>
+                  <input
+                    type="tel"
+                    maxLength={15}
+                    placeholder="e.g. +91 98765 43210"
+                    value={addressForm.phone}
+                    onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
+                    className="w-full rounded-xl border border-neutral-300 px-3.5 py-2 text-xs outline-none focus:border-[#5C0F17]"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block font-bold text-[#2D1C13] mb-1">Street Address</label>
+                <label className="block font-bold text-[#2D1C13] mb-1">Street Address <span className="text-rose-500">*</span></label>
                 <input
                   type="text"
                   required
+                  maxLength={200}
                   placeholder="House/Flat No., Building, Street Name"
                   value={addressForm.street}
                   onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
@@ -726,10 +803,11 @@ export default function ProfilePage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-[#2D1C13] mb-1">City</label>
+                  <label className="block font-bold text-[#2D1C13] mb-1">City <span className="text-rose-500">*</span></label>
                   <input
                     type="text"
                     required
+                    maxLength={100}
                     placeholder="e.g. Varanasi, Delhi"
                     value={addressForm.city}
                     onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
@@ -737,10 +815,11 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-[#2D1C13] mb-1">State</label>
+                  <label className="block font-bold text-[#2D1C13] mb-1">State <span className="text-rose-500">*</span></label>
                   <input
                     type="text"
                     required
+                    maxLength={100}
                     placeholder="e.g. Uttar Pradesh"
                     value={addressForm.state}
                     onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
@@ -751,13 +830,14 @@ export default function ProfilePage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-[#2D1C13] mb-1">Postal / PIN Code</label>
+                  <label className="block font-bold text-[#2D1C13] mb-1">PIN Code (6 digits) <span className="text-rose-500">*</span></label>
                   <input
                     type="text"
                     required
+                    maxLength={6}
                     placeholder="e.g. 221001"
                     value={addressForm.postalCode}
-                    onChange={(e) => setAddressForm({ ...addressForm, postalCode: e.target.value })}
+                    onChange={(e) => setAddressForm({ ...addressForm, postalCode: e.target.value.replace(/\D/g, "") })}
                     className="w-full rounded-xl border border-neutral-300 px-3.5 py-2 text-xs outline-none focus:border-[#5C0F17]"
                   />
                 </div>
@@ -766,6 +846,7 @@ export default function ProfilePage() {
                   <input
                     type="text"
                     required
+                    maxLength={50}
                     value={addressForm.country}
                     onChange={(e) => setAddressForm({ ...addressForm, country: e.target.value })}
                     className="w-full rounded-xl border border-neutral-300 px-3.5 py-2 text-xs outline-none focus:border-[#5C0F17]"
@@ -808,3 +889,4 @@ export default function ProfilePage() {
     </main>
   );
 }
+

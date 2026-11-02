@@ -11,16 +11,22 @@ import {
   Loader2,
   Receipt,
   Sparkles,
+  MapPin,
+  Check,
+  CheckCircle2,
+  AlertCircle,
+  ArrowLeft,
 } from 'lucide-react';
 
 import { useStore } from '../context/StoreContext';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
+import { profileService } from '../services/profileService';
 
 export default function CartPage() {
   const navigate = useNavigate();
   const { cart, cartTotal, removeFromCart, updateQuantity, clearCart } = useStore();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, updateUser } = useAuth();
 
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -31,17 +37,38 @@ export default function CartPage() {
   const [quote, setQuote] = useState(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
 
-  const [form, setForm] = useState({
+  // Address Selection & Management in Checkout
+  const savedAddresses = Array.isArray(user?.addresses) ? user.addresses : [];
+  const defaultIdx = savedAddresses.findIndex((a) => a.isDefault);
+  const initialSelectedIdx = defaultIdx !== -1 ? defaultIdx : (savedAddresses.length > 0 ? 0 : null);
+
+  const [selectedAddressIndex, setSelectedAddressIndex] = useState(initialSelectedIdx);
+  const [useDifferentAddress, setUseDifferentAddress] = useState(savedAddresses.length === 0);
+  const [saveAddressToProfile, setSaveAddressToProfile] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('razorpay');
+
+  const [differentAddressForm, setDifferentAddressForm] = useState({
     name: user?.name || '',
-    email: user?.email || '',
     phone: user?.phone || '',
-    street: user?.addresses?.[0]?.street || '',
-    city: user?.addresses?.[0]?.city || '',
-    state: user?.addresses?.[0]?.state || '',
-    postalCode: user?.addresses?.[0]?.postalCode || '',
+    street: '',
+    city: '',
+    state: '',
+    postalCode: '',
     country: 'India',
-    paymentMethod: 'razorpay',
   });
+
+  // Sync selected address index if user changes
+  useEffect(() => {
+    const addrs = Array.isArray(user?.addresses) ? user.addresses : [];
+    if (addrs.length > 0) {
+      const dIdx = addrs.findIndex((a) => a.isDefault);
+      setSelectedAddressIndex(dIdx !== -1 ? dIdx : 0);
+      setUseDifferentAddress(false);
+    } else {
+      setSelectedAddressIndex(null);
+      setUseDifferentAddress(true);
+    }
+  }, [user?.addresses]);
 
   // Fetch authoritative pricing quote from backend
   const fetchQuote = async () => {
@@ -106,8 +133,8 @@ export default function CartPage() {
     });
   };
 
-  const handleInputChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+  const handleDifferentAddressChange = (field, value) => {
+    setDifferentAddressForm((prev) => ({ ...prev, [field]: value }));
     setError('');
   };
 
@@ -116,6 +143,17 @@ export default function CartPage() {
       navigate('/login', { state: { from: { pathname: '/cart' } } });
       return;
     }
+    setError('');
+    const addrs = Array.isArray(user?.addresses) ? user.addresses : [];
+    if (addrs.length > 0) {
+      const dIdx = addrs.findIndex((a) => a.isDefault);
+      setSelectedAddressIndex(dIdx !== -1 ? dIdx : 0);
+      setUseDifferentAddress(false);
+    } else {
+      setSelectedAddressIndex(null);
+      setUseDifferentAddress(true);
+    }
+    setSaveAddressToProfile(false);
     setCheckoutOpen(true);
     api
       .post('/audit/track', {
@@ -139,16 +177,86 @@ export default function CartPage() {
       return;
     }
 
+    let finalShippingAddress = null;
+    let finalCustomerName = '';
+    let finalCustomerPhone = '';
+
     if (
-      !form.name.trim() ||
-      !form.email.trim() ||
-      !form.street.trim() ||
-      !form.city.trim() ||
-      !form.state.trim() ||
-      !form.postalCode.trim()
+      !useDifferentAddress &&
+      savedAddresses.length > 0 &&
+      selectedAddressIndex !== null &&
+      savedAddresses[selectedAddressIndex]
     ) {
-      setError('Please fill in all required shipping and contact details.');
-      return;
+      const selected = savedAddresses[selectedAddressIndex];
+      finalCustomerName = selected.name?.trim() || user?.name || '';
+      finalCustomerPhone = selected.phone?.trim() || user?.phone || '';
+      finalShippingAddress = {
+        name: finalCustomerName,
+        phone: finalCustomerPhone,
+        street: selected.street?.trim() || '',
+        city: selected.city?.trim() || '',
+        state: selected.state?.trim() || '',
+        postalCode: selected.postalCode?.trim() || '',
+        country: selected.country || 'India',
+      };
+
+      if (!finalShippingAddress.street || !finalShippingAddress.city || !finalShippingAddress.state || !finalShippingAddress.postalCode) {
+        setError('Selected address is missing required fields. Please edit it or use a different address.');
+        return;
+      }
+    } else {
+      const name = differentAddressForm.name?.trim() || user?.name || '';
+      const phone = differentAddressForm.phone?.trim() || user?.phone || '';
+      const street = differentAddressForm.street?.trim() || '';
+      const city = differentAddressForm.city?.trim() || '';
+      const state = differentAddressForm.state?.trim() || '';
+      const postalCode = differentAddressForm.postalCode?.trim() || '';
+      const country = differentAddressForm.country?.trim() || 'India';
+
+      if (!name || !street || !city || !state || !postalCode) {
+        setError('Please fill in all required address fields (Recipient Name, Street, City, State, PIN Code).');
+        return;
+      }
+
+      if (!/^\d{6}$/.test(postalCode)) {
+        setError('Please enter a valid 6-digit Indian PIN code.');
+        return;
+      }
+
+      finalCustomerName = name;
+      finalCustomerPhone = phone;
+      finalShippingAddress = {
+        name,
+        phone,
+        street,
+        city,
+        state,
+        postalCode,
+        country,
+      };
+
+      // If user selected to save this address and has < 3 addresses saved
+      if (saveAddressToProfile && savedAddresses.length < 3) {
+        try {
+          const newAddressItem = {
+            name,
+            phone,
+            street,
+            city,
+            state,
+            postalCode,
+            country,
+            isDefault: savedAddresses.length === 0,
+          };
+          const updatedAddresses = [...savedAddresses, newAddressItem];
+          const profRes = await profileService.updateProfile({ addresses: updatedAddresses });
+          if (profRes && profRes.success && profRes.user) {
+            updateUser(profRes.user);
+          }
+        } catch (saveErr) {
+          console.warn('Unable to auto-save address to profile:', saveErr);
+        }
+      }
     }
 
     try {
@@ -162,24 +270,18 @@ export default function CartPage() {
       const payload = {
         items,
         customerDetails: {
-          name: form.name.trim(),
-          email: form.email.trim(),
-          phone: form.phone.trim(),
+          name: finalCustomerName,
+          email: user?.email || '',
+          phone: finalCustomerPhone,
         },
-        shippingAddress: {
-          street: form.street.trim(),
-          city: form.city.trim(),
-          state: form.state.trim(),
-          postalCode: form.postalCode.trim(),
-          country: form.country || 'India',
-        },
-        paymentMethod: form.paymentMethod,
+        shippingAddress: finalShippingAddress,
+        paymentMethod: paymentMethod,
       };
 
       const res = await api.post('/orders', payload);
 
       if (res.success && res.order) {
-        if (form.paymentMethod === 'razorpay' && res.razorpayOrder) {
+        if (paymentMethod === 'razorpay' && res.razorpayOrder) {
           const loaded = await loadRazorpayScript();
           if (!loaded) {
             setError('Unable to load Razorpay payment SDK. Please check your connection.');
@@ -195,9 +297,9 @@ export default function CartPage() {
             description: `Order ${res.order.orderNumber}`,
             order_id: res.razorpayOrder.orderId,
             prefill: {
-              name: form.name.trim(),
-              email: form.email.trim(),
-              contact: form.phone.trim(),
+              name: finalCustomerName,
+              email: user?.email || '',
+              contact: finalCustomerPhone,
             },
             theme: {
               color: '#5C0F17',
@@ -544,91 +646,233 @@ export default function CartPage() {
               </p>
             )}
 
-            <form onSubmit={handlePlaceOrder} className="mt-6 space-y-4">
-              <div>
-                <label className="text-xs font-bold text-neutral-700">Full Name *</label>
-                <input
-                  required
-                  value={form.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  className={inputClass}
-                  placeholder="Your full name"
-                />
+            <form onSubmit={handlePlaceOrder} className="mt-6 space-y-5">
+              {/* Recipient Account / Contact Banner */}
+              <div className="rounded-2xl border border-neutral-100 bg-neutral-50/70 p-3.5 flex items-center justify-between text-xs">
+                <div>
+                  <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider block">
+                    Account Email
+                  </span>
+                  <span className="font-bold text-neutral-800 font-mono">
+                    {user?.email || 'N/A'}
+                  </span>
+                </div>
+                <span className="text-[11px] text-neutral-400">Order confirmation & receipt</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-neutral-700">Email *</label>
-                  <input
-                    required
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className={inputClass}
-                    placeholder="you@example.com"
-                  />
+              {/* Delivery Address Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <MapPin size={16} className="text-[#5C0F17]" />
+                    <label className="text-xs font-black uppercase tracking-wider text-neutral-800">
+                      Delivery Address *
+                    </label>
+                  </div>
+                  {savedAddresses.length > 0 && !useDifferentAddress && (
+                    <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-bold text-neutral-600">
+                      {savedAddresses.length}/3 Saved
+                    </span>
+                  )}
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-neutral-700">Phone</label>
-                  <input
-                    value={form.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className={inputClass}
-                    placeholder="+91 98765 43210"
-                  />
-                </div>
+
+                {/* Case 1: Customer has saved addresses and is selecting one */}
+                {savedAddresses.length > 0 && !useDifferentAddress ? (
+                  <div className="space-y-2.5">
+                    {savedAddresses.map((addr, idx) => {
+                      const isSelected = selectedAddressIndex === idx;
+                      return (
+                        <div
+                          key={addr._id || idx}
+                          onClick={() => setSelectedAddressIndex(idx)}
+                          className={`relative cursor-pointer rounded-2xl border p-4 transition ${
+                            isSelected
+                              ? 'border-[#5C0F17] bg-[#FFFDF9] ring-2 ring-[#5C0F17]/15 shadow-xs'
+                              : 'border-neutral-200 bg-white hover:border-neutral-300'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5 shrink-0">
+                              <div
+                                className={`flex h-5 w-5 items-center justify-center rounded-full border transition ${
+                                  isSelected
+                                    ? 'border-[#5C0F17] bg-[#5C0F17] text-white'
+                                    : 'border-neutral-300 bg-white'
+                                }`}
+                              >
+                                {isSelected && <Check size={12} className="stroke-[3]" />}
+                              </div>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-xs font-bold text-neutral-900">
+                                  {addr.name || user?.name || 'Recipient'}
+                                </span>
+                                {(addr.phone || user?.phone) && (
+                                  <span className="text-xs font-medium text-neutral-500">
+                                    • {addr.phone || user?.phone}
+                                  </span>
+                                )}
+                                {addr.isDefault && (
+                                  <span className="rounded-full bg-[#DA9B26]/15 px-2 py-0.5 text-[10px] font-bold text-[#5C0F17] border border-[#DA9B26]/30">
+                                    DEFAULT
+                                  </span>
+                                )}
+                              </div>
+                              <p className="mt-1 text-xs text-neutral-600 leading-relaxed">
+                                {addr.street}, {addr.city}, {addr.state} -{' '}
+                                <span className="font-semibold text-neutral-900 font-mono">
+                                  {addr.postalCode}
+                                </span>
+                              </p>
+                              <p className="text-[11px] text-neutral-400 mt-0.5">
+                                {addr.country || 'India'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDifferentAddressForm({
+                          name: user?.name || '',
+                          phone: user?.phone || '',
+                          street: '',
+                          city: '',
+                          state: '',
+                          postalCode: '',
+                          country: 'India',
+                        });
+                        setUseDifferentAddress(true);
+                      }}
+                      className="w-full mt-1.5 rounded-xl border border-dashed border-[#5C0F17]/40 bg-[#FAF6F0]/40 py-2.5 text-xs font-bold text-[#5C0F17] hover:bg-[#FAF6F0] transition"
+                    >
+                      + Deliver to a different address
+                    </button>
+                  </div>
+                ) : (
+                  /* Case 2: Customer enters a new or different address */
+                  <div className="space-y-3.5">
+                    {savedAddresses.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setUseDifferentAddress(false)}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#5C0F17] hover:underline"
+                      >
+                        <ArrowLeft size={13} /> Back to saved addresses ({savedAddresses.length})
+                      </button>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-neutral-700">Recipient Name *</label>
+                        <input
+                          required
+                          value={differentAddressForm.name}
+                          onChange={(e) => handleDifferentAddressChange('name', e.target.value)}
+                          className={inputClass}
+                          placeholder="e.g. Kunal Rathore"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-neutral-700">Phone Number</label>
+                        <input
+                          value={differentAddressForm.phone}
+                          onChange={(e) => handleDifferentAddressChange('phone', e.target.value)}
+                          className={inputClass}
+                          placeholder="+91 98765 43210"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-neutral-700">Street Address *</label>
+                      <input
+                        required
+                        value={differentAddressForm.street}
+                        onChange={(e) => handleDifferentAddressChange('street', e.target.value)}
+                        className={inputClass}
+                        placeholder="House / Flat #, Apartment, Street name"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-neutral-700">City *</label>
+                        <input
+                          required
+                          value={differentAddressForm.city}
+                          onChange={(e) => handleDifferentAddressChange('city', e.target.value)}
+                          className={inputClass}
+                          placeholder="City"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-neutral-700">State *</label>
+                        <input
+                          required
+                          value={differentAddressForm.state}
+                          onChange={(e) => handleDifferentAddressChange('state', e.target.value)}
+                          className={inputClass}
+                          placeholder="State"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-neutral-700">PIN Code *</label>
+                        <input
+                          required
+                          maxLength={6}
+                          value={differentAddressForm.postalCode}
+                          onChange={(e) => handleDifferentAddressChange('postalCode', e.target.value.replace(/\D/g, ''))}
+                          className={inputClass}
+                          placeholder="6 digits"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Profile Saving Option & Maximum 3 Limit Notice */}
+                    {savedAddresses.length < 3 ? (
+                      <label className="flex items-start gap-2.5 rounded-xl border border-neutral-200/90 bg-neutral-50/60 p-3 text-xs cursor-pointer hover:bg-neutral-50 transition">
+                        <input
+                          type="checkbox"
+                          checked={saveAddressToProfile}
+                          onChange={(e) => setSaveAddressToProfile(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-[#5C0F17] focus:ring-[#5C0F17] accent-[#5C0F17]"
+                        />
+                        <div>
+                          <span className="font-bold text-neutral-800 block">
+                            Save this address to my profile for future orders
+                          </span>
+                          <span className="text-[11px] text-neutral-400 block mt-0.5">
+                            Quick 1-click checkout for your next puja booking ({savedAddresses.length}/3 saved).
+                          </span>
+                        </div>
+                      </label>
+                    ) : (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-900 flex items-start gap-2">
+                        <AlertCircle size={16} className="text-amber-700 shrink-0 mt-0.5" />
+                        <div className="text-[11px] leading-relaxed">
+                          <span className="font-bold">Maximum 3 saved addresses reached.</span>
+                          <p className="text-amber-800/90 mt-0.5">
+                            You have reached the maximum limit of 3 saved addresses. This address will be used for your current order, but cannot be saved to your profile unless an existing address is removed.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-neutral-700">Street Address *</label>
-                <input
-                  required
-                  value={form.street}
-                  onChange={(e) => handleInputChange('street', e.target.value)}
-                  className={inputClass}
-                  placeholder="House / Flat / Street"
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-neutral-700">City *</label>
-                  <input
-                    required
-                    value={form.city}
-                    onChange={(e) => handleInputChange('city', e.target.value)}
-                    className={inputClass}
-                    placeholder="City"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-neutral-700">State *</label>
-                  <input
-                    required
-                    value={form.state}
-                    onChange={(e) => handleInputChange('state', e.target.value)}
-                    className={inputClass}
-                    placeholder="State"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-neutral-700">Postal Code *</label>
-                  <input
-                    required
-                    value={form.postalCode}
-                    onChange={(e) => handleInputChange('postalCode', e.target.value)}
-                    className={inputClass}
-                    placeholder="PIN Code"
-                  />
-                </div>
-              </div>
-
+              {/* Payment Method Selector */}
               <div>
                 <label className="text-xs font-bold text-neutral-700">Payment Method</label>
                 <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <label
                     className={`flex cursor-pointer items-center gap-2 rounded-xl border p-3 text-xs font-semibold ${
-                      form.paymentMethod === 'razorpay'
+                      paymentMethod === 'razorpay'
                         ? 'border-[#5C0F17] bg-rose-50 text-[#5C0F17]'
                         : 'border-neutral-200'
                     }`}
@@ -637,15 +881,15 @@ export default function CartPage() {
                       type="radio"
                       name="paymentMethod"
                       value="razorpay"
-                      checked={form.paymentMethod === 'razorpay'}
-                      onChange={() => handleInputChange('paymentMethod', 'razorpay')}
+                      checked={paymentMethod === 'razorpay'}
+                      onChange={() => setPaymentMethod('razorpay')}
                       className="accent-[#5C0F17]"
                     />
                     Razorpay (UPI / Cards / NetBanking)
                   </label>
                   <label
                     className={`flex cursor-pointer items-center gap-2 rounded-xl border p-3 text-xs font-semibold ${
-                      form.paymentMethod === 'cod'
+                      paymentMethod === 'cod'
                         ? 'border-[#5C0F17] bg-rose-50 text-[#5C0F17]'
                         : 'border-neutral-200'
                     }`}
@@ -654,8 +898,8 @@ export default function CartPage() {
                       type="radio"
                       name="paymentMethod"
                       value="cod"
-                      checked={form.paymentMethod === 'cod'}
-                      onChange={() => handleInputChange('paymentMethod', 'cod')}
+                      checked={paymentMethod === 'cod'}
+                      onChange={() => setPaymentMethod('cod')}
                       className="accent-[#5C0F17]"
                     />
                     Cash on Delivery
