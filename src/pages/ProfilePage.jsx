@@ -25,6 +25,8 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { profileService } from "../services/profileService";
 import { resolveImageUrl } from "../utils/imageHelper";
+import { validateAddressForm } from "../validations/addressValidation";
+import { validateProfileUpdate, validateAvatarFile } from "../validations/profileValidation";
 
 export default function ProfilePage() {
   const { user: authUser, updateUser, isAuthenticated, loading: authLoading } = useAuth();
@@ -56,6 +58,8 @@ export default function ProfilePage() {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [editingAddressIndex, setEditingAddressIndex] = useState(null);
   const [addressForm, setAddressForm] = useState({
+    name: "",
+    phone: "",
     street: "",
     city: "",
     state: "",
@@ -65,6 +69,8 @@ export default function ProfilePage() {
   });
   const [savingAddress, setSavingAddress] = useState(false);
   const [addressError, setAddressError] = useState(null);
+  const [addressFieldErrors, setAddressFieldErrors] = useState({});
+  const [profileFieldErrors, setProfileFieldErrors] = useState({});
 
   // Redirect to login if unauthenticated
   useEffect(() => {
@@ -157,9 +163,11 @@ export default function ProfilePage() {
   // Handle Personal Details update
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
-    const trimmedName = editName.trim();
-    if (!trimmedName || trimmedName.length < 2) {
-      setProfileErrorMsg("Name must be at least 2 characters long.");
+    setProfileFieldErrors({});
+    const validation = validateProfileUpdate({ name: editName, phone: editPhone });
+    if (!validation.isValid) {
+      setProfileFieldErrors(validation.errors);
+      setProfileErrorMsg(validation.errors.name || validation.errors.phone);
       return;
     }
 
@@ -169,7 +177,7 @@ export default function ProfilePage() {
       setProfileSuccessMsg(null);
 
       const res = await profileService.updateProfile({
-        name: trimmedName,
+        name: editName.trim(),
         phone: editPhone.trim(),
       });
 
@@ -184,6 +192,9 @@ export default function ProfilePage() {
       }
     } catch (err) {
       console.error("Profile update error:", err);
+      if (err.fieldErrors) {
+        setProfileFieldErrors(err.fieldErrors);
+      }
       setProfileErrorMsg(err.message || "Failed to update profile.");
     } finally {
       setSavingProfile(false);
@@ -208,6 +219,7 @@ export default function ProfilePage() {
       isDefault: !profile?.addresses || profile.addresses.length === 0,
     });
     setAddressError(null);
+    setAddressFieldErrors({});
     setShowAddressModal(true);
   };
 
@@ -224,31 +236,28 @@ export default function ProfilePage() {
       isDefault: Boolean(addr.isDefault),
     });
     setAddressError(null);
+    setAddressFieldErrors({});
     setShowAddressModal(true);
   };
 
   const handleSaveAddress = async (e) => {
     e.preventDefault();
-    const street = addressForm.street.trim();
-    const city = addressForm.city.trim();
-    const state = addressForm.state.trim();
-    const postalCode = addressForm.postalCode.trim();
-
-    if (!street || !city || !state || !postalCode) {
-      setAddressError("Please fill in all required address fields (Street, City, State, PIN Code).");
-      return;
-    }
-
-    if (!/^\d{6}$/.test(postalCode)) {
-      setAddressError("Please enter a valid 6-digit Indian PIN code.");
-      return;
-    }
+    setAddressFieldErrors({});
+    setAddressError(null);
 
     const existing = Array.isArray(profile?.addresses) ? [...profile.addresses] : [];
 
-    // Strictly enforce maximum 3 addresses
-    if (editingAddressIndex === null && existing.length >= 3) {
-      setAddressError("You can save a maximum of 3 addresses. Please delete an existing address first.");
+    // Client-side field-level validation
+    const validation = validateAddressForm(
+      addressForm,
+      existing.length,
+      editingAddressIndex !== null
+    );
+
+    if (!validation.isValid) {
+      setAddressFieldErrors(validation.errors);
+      const firstError = Object.values(validation.errors)[0];
+      setAddressError(firstError);
       return;
     }
 
@@ -259,10 +268,10 @@ export default function ProfilePage() {
       const cleanedAddress = {
         name: addressForm.name.trim(),
         phone: addressForm.phone.trim(),
-        street,
-        city,
-        state,
-        postalCode,
+        street: addressForm.street.trim(),
+        city: addressForm.city.trim(),
+        state: addressForm.state.trim(),
+        postalCode: addressForm.postalCode.trim(),
         country: addressForm.country.trim() || "India",
         isDefault: Boolean(addressForm.isDefault),
       };
@@ -296,6 +305,9 @@ export default function ProfilePage() {
       }
     } catch (err) {
       console.error("Address save error:", err);
+      if (err.fieldErrors && Object.keys(err.fieldErrors).length > 0) {
+        setAddressFieldErrors(err.fieldErrors);
+      }
       setAddressError(err.message || "Failed to save address.");
     } finally {
       setSavingAddress(false);
@@ -535,7 +547,7 @@ export default function ProfilePage() {
           </div>
 
           {isEditingProfile ? (
-            <form onSubmit={handleProfileSubmit} className="space-y-4 max-w-xl">
+            <form onSubmit={handleProfileSubmit} noValidate className="space-y-4 max-w-xl">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-[#2D1C13] mb-1.5">
                   Full Name <span className="text-rose-500">*</span>
@@ -543,11 +555,22 @@ export default function ProfilePage() {
                 <input
                   type="text"
                   maxLength={50}
-                  required
                   value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="w-full rounded-2xl border border-neutral-300 px-4 py-2.5 text-xs text-[#2D1C13] outline-none focus:border-[#5C0F17] focus:ring-2 focus:ring-[#5C0F17]/10"
+                  onChange={(e) => {
+                    setEditName(e.target.value);
+                    setProfileFieldErrors((prev) => ({ ...prev, name: undefined }));
+                  }}
+                  className={`w-full rounded-2xl border px-4 py-2.5 text-xs text-[#2D1C13] outline-none transition ${
+                    profileFieldErrors.name
+                      ? "border-rose-500 ring-1 ring-rose-500 bg-rose-50/20"
+                      : "border-neutral-300 focus:border-[#5C0F17] focus:ring-2 focus:ring-[#5C0F17]/10"
+                  }`}
                 />
+                {profileFieldErrors.name && (
+                  <p className="mt-1 text-[11px] font-semibold text-rose-600">
+                    {profileFieldErrors.name}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -558,10 +581,22 @@ export default function ProfilePage() {
                   type="tel"
                   maxLength={15}
                   value={editPhone}
-                  onChange={(e) => setEditPhone(e.target.value)}
-                  placeholder="+91 98765 43210"
-                  className="w-full rounded-2xl border border-neutral-300 px-4 py-2.5 text-xs text-[#2D1C13] outline-none focus:border-[#5C0F17] focus:ring-2 focus:ring-[#5C0F17]/10"
+                  onChange={(e) => {
+                    setEditPhone(e.target.value);
+                    setProfileFieldErrors((prev) => ({ ...prev, phone: undefined }));
+                  }}
+                  placeholder="e.g. 9876543210"
+                  className={`w-full rounded-2xl border px-4 py-2.5 text-xs text-[#2D1C13] outline-none transition ${
+                    profileFieldErrors.phone
+                      ? "border-rose-500 ring-1 ring-rose-500 bg-rose-50/20"
+                      : "border-neutral-300 focus:border-[#5C0F17] focus:ring-2 focus:ring-[#5C0F17]/10"
+                  }`}
                 />
+                {profileFieldErrors.phone && (
+                  <p className="mt-1 text-[11px] font-semibold text-rose-600">
+                    {profileFieldErrors.phone}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -762,94 +797,176 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <form onSubmit={handleSaveAddress} className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleSaveAddress} noValidate className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-[#2D1C13] mb-1">Recipient Name</label>
+                  <label className="block font-bold text-[#2D1C13] mb-1">
+                    Recipient Name <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
                     maxLength={50}
                     placeholder="e.g. Kunal Rathore"
                     value={addressForm.name}
-                    onChange={(e) => setAddressForm({ ...addressForm, name: e.target.value })}
-                    className="w-full rounded-xl border border-neutral-300 px-3.5 py-2 text-xs outline-none focus:border-[#5C0F17]"
+                    onChange={(e) => {
+                      setAddressForm({ ...addressForm, name: e.target.value });
+                      setAddressFieldErrors((prev) => ({ ...prev, name: undefined }));
+                    }}
+                    className={`w-full rounded-xl border px-3.5 py-2.5 text-xs outline-none transition ${
+                      addressFieldErrors.name
+                        ? "border-rose-500 ring-1 ring-rose-500 bg-rose-50/20"
+                        : "border-neutral-300 focus:border-[#5C0F17]"
+                    }`}
                   />
+                  {addressFieldErrors.name && (
+                    <p className="mt-1 text-[11px] font-semibold text-rose-600">
+                      {addressFieldErrors.name}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <label className="block font-bold text-[#2D1C13] mb-1">Phone Number</label>
+                  <label className="block font-bold text-[#2D1C13] mb-1">
+                    Phone Number <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="tel"
                     maxLength={15}
-                    placeholder="e.g. +91 98765 43210"
+                    placeholder="e.g. 9876543210"
                     value={addressForm.phone}
-                    onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
-                    className="w-full rounded-xl border border-neutral-300 px-3.5 py-2 text-xs outline-none focus:border-[#5C0F17]"
+                    onChange={(e) => {
+                      setAddressForm({ ...addressForm, phone: e.target.value });
+                      setAddressFieldErrors((prev) => ({ ...prev, phone: undefined }));
+                    }}
+                    className={`w-full rounded-xl border px-3.5 py-2.5 text-xs outline-none transition ${
+                      addressFieldErrors.phone
+                        ? "border-rose-500 ring-1 ring-rose-500 bg-rose-50/20"
+                        : "border-neutral-300 focus:border-[#5C0F17]"
+                    }`}
                   />
+                  {addressFieldErrors.phone && (
+                    <p className="mt-1 text-[11px] font-semibold text-rose-600">
+                      {addressFieldErrors.phone}
+                    </p>
+                  )}
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-[#2D1C13] mb-1">Street Address <span className="text-rose-500">*</span></label>
+                <label className="block font-bold text-[#2D1C13] mb-1">
+                  Street Address <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
-                  required
                   maxLength={200}
                   placeholder="House/Flat No., Building, Street Name"
                   value={addressForm.street}
-                  onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
-                  className="w-full rounded-xl border border-neutral-300 px-3.5 py-2 text-xs outline-none focus:border-[#5C0F17]"
+                  onChange={(e) => {
+                    setAddressForm({ ...addressForm, street: e.target.value });
+                    setAddressFieldErrors((prev) => ({ ...prev, street: undefined }));
+                  }}
+                  className={`w-full rounded-xl border px-3.5 py-2.5 text-xs outline-none transition ${
+                    addressFieldErrors.street
+                      ? "border-rose-500 ring-1 ring-rose-500 bg-rose-50/20"
+                      : "border-neutral-300 focus:border-[#5C0F17]"
+                  }`}
                 />
+                {addressFieldErrors.street && (
+                  <p className="mt-1 text-[11px] font-semibold text-rose-600">
+                    {addressFieldErrors.street}
+                  </p>
+                )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-[#2D1C13] mb-1">City <span className="text-rose-500">*</span></label>
+                  <label className="block font-bold text-[#2D1C13] mb-1">
+                    City <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
-                    required
                     maxLength={100}
                     placeholder="e.g. Varanasi, Delhi"
                     value={addressForm.city}
-                    onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
-                    className="w-full rounded-xl border border-neutral-300 px-3.5 py-2 text-xs outline-none focus:border-[#5C0F17]"
+                    onChange={(e) => {
+                      setAddressForm({ ...addressForm, city: e.target.value });
+                      setAddressFieldErrors((prev) => ({ ...prev, city: undefined }));
+                    }}
+                    className={`w-full rounded-xl border px-3.5 py-2.5 text-xs outline-none transition ${
+                      addressFieldErrors.city
+                        ? "border-rose-500 ring-1 ring-rose-500 bg-rose-50/20"
+                        : "border-neutral-300 focus:border-[#5C0F17]"
+                    }`}
                   />
+                  {addressFieldErrors.city && (
+                    <p className="mt-1 text-[11px] font-semibold text-rose-600">
+                      {addressFieldErrors.city}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <label className="block font-bold text-[#2D1C13] mb-1">State <span className="text-rose-500">*</span></label>
+                  <label className="block font-bold text-[#2D1C13] mb-1">
+                    State <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
-                    required
                     maxLength={100}
                     placeholder="e.g. Uttar Pradesh"
                     value={addressForm.state}
-                    onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
-                    className="w-full rounded-xl border border-neutral-300 px-3.5 py-2 text-xs outline-none focus:border-[#5C0F17]"
+                    onChange={(e) => {
+                      setAddressForm({ ...addressForm, state: e.target.value });
+                      setAddressFieldErrors((prev) => ({ ...prev, state: undefined }));
+                    }}
+                    className={`w-full rounded-xl border px-3.5 py-2.5 text-xs outline-none transition ${
+                      addressFieldErrors.state
+                        ? "border-rose-500 ring-1 ring-rose-500 bg-rose-50/20"
+                        : "border-neutral-300 focus:border-[#5C0F17]"
+                    }`}
                   />
+                  {addressFieldErrors.state && (
+                    <p className="mt-1 text-[11px] font-semibold text-rose-600">
+                      {addressFieldErrors.state}
+                    </p>
+                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-[#2D1C13] mb-1">PIN Code (6 digits) <span className="text-rose-500">*</span></label>
+                  <label className="block font-bold text-[#2D1C13] mb-1">
+                    PIN Code (6 digits) <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
-                    required
                     maxLength={6}
                     placeholder="e.g. 221001"
                     value={addressForm.postalCode}
-                    onChange={(e) => setAddressForm({ ...addressForm, postalCode: e.target.value.replace(/\D/g, "") })}
-                    className="w-full rounded-xl border border-neutral-300 px-3.5 py-2 text-xs outline-none focus:border-[#5C0F17]"
+                    onChange={(e) => {
+                      setAddressForm({
+                        ...addressForm,
+                        postalCode: e.target.value.replace(/\D/g, ""),
+                      });
+                      setAddressFieldErrors((prev) => ({ ...prev, postalCode: undefined }));
+                    }}
+                    className={`w-full rounded-xl border px-3.5 py-2.5 text-xs outline-none transition ${
+                      addressFieldErrors.postalCode
+                        ? "border-rose-500 ring-1 ring-rose-500 bg-rose-50/20"
+                        : "border-neutral-300 focus:border-[#5C0F17]"
+                    }`}
                   />
+                  {addressFieldErrors.postalCode && (
+                    <p className="mt-1 text-[11px] font-semibold text-rose-600">
+                      {addressFieldErrors.postalCode}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block font-bold text-[#2D1C13] mb-1">Country</label>
                   <input
                     type="text"
-                    required
                     maxLength={50}
                     value={addressForm.country}
                     onChange={(e) => setAddressForm({ ...addressForm, country: e.target.value })}
-                    className="w-full rounded-xl border border-neutral-300 px-3.5 py-2 text-xs outline-none focus:border-[#5C0F17]"
+                    className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-xs outline-none focus:border-[#5C0F17]"
                   />
                 </div>
               </div>

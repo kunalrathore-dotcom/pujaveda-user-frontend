@@ -86,3 +86,4 @@ export const validateResetPassword = ({ otp, newPassword, confirmPassword }) => 
     errors,
   };
 };
+

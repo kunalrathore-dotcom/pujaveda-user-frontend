@@ -1,4 +1,4 @@
-import { isValidIndianPin } from "./commonValidation";
+import { isValidIndianPin, isValidPhone } from "./commonValidation";
 
 export const validateAddressForm = (form, existingAddressesCount = 0, isEditing = false) => {
   const errors = {};
@@ -10,33 +10,40 @@ export const validateAddressForm = (form, existingAddressesCount = 0, isEditing 
 
   const name = form.name ? String(form.name).trim() : "";
   if (!name) {
-    errors.name = "Please enter the recipient full name.";
+    errors.name = "Please enter the recipient's name.";
   } else if (name.length < 2) {
-    errors.name = "Recipient name must be at least 2 characters.";
+    errors.name = "Name must contain at least 2 characters.";
+  }
+
+  const phone = form.phone ? String(form.phone).trim() : "";
+  if (!phone) {
+    errors.phone = "Please enter your phone number.";
+  } else if (!isValidPhone(phone)) {
+    errors.phone = "Please enter a valid 10-digit mobile number.";
   }
 
   const street = form.street ? String(form.street).trim() : "";
   if (!street) {
-    errors.street = "Please enter the street or house address.";
+    errors.street = "Please enter your street or house address.";
   } else if (street.length < 3) {
     errors.street = "Street address must be at least 3 characters.";
   }
 
   const city = form.city ? String(form.city).trim() : "";
   if (!city) {
-    errors.city = "Please enter the city.";
+    errors.city = "Please enter your city.";
   }
 
   const state = form.state ? String(form.state).trim() : "";
   if (!state) {
-    errors.state = "Please enter the state.";
+    errors.state = "Please enter your state.";
   }
 
   const postalCode = form.postalCode ? String(form.postalCode).trim() : "";
   if (!postalCode) {
-    errors.postalCode = "Please enter the 6-digit PIN code.";
+    errors.postalCode = "Please enter your 6-digit PIN code.";
   } else if (!isValidIndianPin(postalCode)) {
-    errors.postalCode = "Please enter a valid 6-digit Indian PIN code.";
+    errors.postalCode = "Please enter a valid 6-digit PIN code.";
   }
 
   return {
@@ -44,3 +51,4 @@ export const validateAddressForm = (form, existingAddressesCount = 0, isEditing 
     errors,
   };
 };
+

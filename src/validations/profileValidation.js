@@ -30,3 +30,4 @@ export const validateAvatarFile = (file) => {
 
   return { isValid: true, error: null };
 };
+

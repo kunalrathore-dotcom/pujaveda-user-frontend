@@ -82,12 +82,17 @@ export default function RegisterPage() {
 
       navigate("/", { replace: true });
     } catch (error) {
+      if (error.fieldErrors) setErrors(error.fieldErrors);
       setServerError(error.message || "Unable to create account.");
     }
   };
 
-  const inputClass =
-    "mt-2 w-full rounded-xl border border-[#EEDBC5] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#DA9B26] focus:ring-2 focus:ring-[#DA9B26]/10";
+  const getInputClass = (hasError) =>
+    `mt-2 w-full rounded-xl border px-4 py-3 text-sm outline-none transition ${
+      hasError
+        ? "border-rose-500 ring-1 ring-rose-500 bg-rose-50/20 focus:border-rose-600 focus:ring-rose-500"
+        : "border-[#EEDBC5] bg-white focus:border-[#DA9B26] focus:ring-2 focus:ring-[#DA9B26]/10"
+    }`;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#FAF6F0] px-4 py-10">
@@ -116,12 +121,12 @@ export default function RegisterPage() {
               autoComplete="name"
               value={form.name}
               onChange={(event) => updateField("name", event.target.value)}
-              className={inputClass}
+              className={getInputClass(Boolean(errors.name))}
               placeholder="Your full name"
               aria-invalid={Boolean(errors.name)}
             />
             {errors.name && (
-              <p className="mt-1 text-xs text-red-600 font-medium">{errors.name}</p>
+              <p className="mt-1 text-xs text-rose-600 font-semibold">{errors.name}</p>
             )}
           </div>
 
@@ -136,12 +141,12 @@ export default function RegisterPage() {
               autoComplete="email"
               value={form.email}
               onChange={(event) => updateField("email", event.target.value)}
-              className={inputClass}
+              className={getInputClass(Boolean(errors.email))}
               placeholder="you@example.com"
               aria-invalid={Boolean(errors.email)}
             />
             {errors.email && (
-              <p className="mt-1 text-xs text-red-600 font-medium">{errors.email}</p>
+              <p className="mt-1 text-xs text-rose-600 font-semibold">{errors.email}</p>
             )}
           </div>
 
@@ -157,7 +162,7 @@ export default function RegisterPage() {
                 autoComplete="new-password"
                 value={form.password}
                 onChange={(event) => updateField("password", event.target.value)}
-                className={`${inputClass} pr-12`}
+                className={`${getInputClass(Boolean(errors.password))} pr-12`}
                 placeholder="Min. 8 characters (A-Z, a-z, 0-9, symbol)"
                 aria-invalid={Boolean(errors.password)}
               />
@@ -171,7 +176,7 @@ export default function RegisterPage() {
               </button>
             </div>
             {errors.password && (
-              <p className="mt-1 text-xs text-red-600 font-medium">{errors.password}</p>
+              <p className="mt-1 text-xs text-rose-600 font-semibold">{errors.password}</p>
             )}
           </div>
 
@@ -189,7 +194,7 @@ export default function RegisterPage() {
                 onChange={(event) =>
                   updateField("confirmPassword", event.target.value)
                 }
-                className={`${inputClass} pr-12`}
+                className={`${getInputClass(Boolean(errors.confirmPassword))} pr-12`}
                 placeholder="Re-enter your password"
                 aria-invalid={Boolean(errors.confirmPassword)}
               />
@@ -203,7 +208,7 @@ export default function RegisterPage() {
               </button>
             </div>
             {errors.confirmPassword && (
-              <p className="mt-1 text-xs text-red-600 font-medium">
+              <p className="mt-1 text-xs text-rose-600 font-semibold">
                 {errors.confirmPassword}
               </p>
             )}

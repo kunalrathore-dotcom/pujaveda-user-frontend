@@ -22,6 +22,7 @@ import { useStore } from '../context/StoreContext';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { profileService } from '../services/profileService';
+import { validateCheckoutAddress } from '../validations/orderValidation';
 
 export default function CartPage() {
   const navigate = useNavigate();
@@ -46,6 +47,7 @@ export default function CartPage() {
   const [useDifferentAddress, setUseDifferentAddress] = useState(savedAddresses.length === 0);
   const [saveAddressToProfile, setSaveAddressToProfile] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('razorpay');
+  const [checkoutFieldErrors, setCheckoutFieldErrors] = useState({});
 
   const [differentAddressForm, setDifferentAddressForm] = useState({
     name: user?.name || '',
@@ -135,6 +137,7 @@ export default function CartPage() {
 
   const handleDifferentAddressChange = (field, value) => {
     setDifferentAddressForm((prev) => ({ ...prev, [field]: value }));
+    setCheckoutFieldErrors((prev) => ({ ...prev, [field]: undefined }));
     setError('');
   };
 
@@ -144,6 +147,7 @@ export default function CartPage() {
       return;
     }
     setError('');
+    setCheckoutFieldErrors({});
     const addrs = Array.isArray(user?.addresses) ? user.addresses : [];
     if (addrs.length > 0) {
       const dIdx = addrs.findIndex((a) => a.isDefault);
@@ -171,6 +175,7 @@ export default function CartPage() {
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
     setError('');
+    setCheckoutFieldErrors({});
 
     if (!isAuthenticated) {
       navigate('/login', { state: { from: { pathname: '/cart' } } });
@@ -205,23 +210,21 @@ export default function CartPage() {
         return;
       }
     } else {
-      const name = differentAddressForm.name?.trim() || user?.name || '';
-      const phone = differentAddressForm.phone?.trim() || user?.phone || '';
-      const street = differentAddressForm.street?.trim() || '';
-      const city = differentAddressForm.city?.trim() || '';
-      const state = differentAddressForm.state?.trim() || '';
-      const postalCode = differentAddressForm.postalCode?.trim() || '';
+      // Validate different address using modular validator
+      const val = validateCheckoutAddress(differentAddressForm);
+      if (!val.isValid) {
+        setCheckoutFieldErrors(val.errors);
+        setError(Object.values(val.errors)[0]);
+        return;
+      }
+
+      const name = differentAddressForm.name.trim();
+      const phone = differentAddressForm.phone.trim();
+      const street = differentAddressForm.street.trim();
+      const city = differentAddressForm.city.trim();
+      const state = differentAddressForm.state.trim();
+      const postalCode = differentAddressForm.postalCode.trim();
       const country = differentAddressForm.country?.trim() || 'India';
-
-      if (!name || !street || !city || !state || !postalCode) {
-        setError('Please fill in all required address fields (Recipient Name, Street, City, State, PIN Code).');
-        return;
-      }
-
-      if (!/^\d{6}$/.test(postalCode)) {
-        setError('Please enter a valid 6-digit Indian PIN code.');
-        return;
-      }
 
       finalCustomerName = name;
       finalCustomerPhone = phone;
@@ -251,6 +254,7 @@ export default function CartPage() {
           const updatedAddresses = [...savedAddresses, newAddressItem];
           const profRes = await profileService.updateProfile({ addresses: updatedAddresses });
           if (profRes && profRes.success && profRes.user) {
+
             updateUser(profRes.user);
           }
         } catch (saveErr) {
@@ -352,6 +356,9 @@ export default function CartPage() {
       }
     } catch (err) {
       console.error('Order placement error:', err);
+      if (err.fieldErrors && Object.keys(err.fieldErrors).length > 0) {
+        setCheckoutFieldErrors(err.fieldErrors);
+      }
       setError(err.message || 'Failed to place order. Please check item stock.');
     } finally {
       setSubmitting(false);
@@ -770,66 +777,120 @@ export default function CartPage() {
                       <div>
                         <label className="text-xs font-bold text-neutral-700">Recipient Name *</label>
                         <input
-                          required
                           value={differentAddressForm.name}
                           onChange={(e) => handleDifferentAddressChange('name', e.target.value)}
-                          className={inputClass}
+                          className={`w-full rounded-xl border px-3.5 py-2.5 text-xs outline-none transition ${
+                            checkoutFieldErrors.name
+                              ? 'border-rose-500 ring-1 ring-rose-500 bg-rose-50/20'
+                              : 'border-neutral-200 bg-white focus:border-[#5C0F17]'
+                          }`}
                           placeholder="e.g. Kunal Rathore"
                         />
+                        {checkoutFieldErrors.name && (
+                          <p className="mt-1 text-[11px] font-semibold text-rose-600">
+                            {checkoutFieldErrors.name}
+                          </p>
+                        )}
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-neutral-700">Phone Number</label>
+                        <label className="text-xs font-bold text-neutral-700">Phone Number *</label>
                         <input
                           value={differentAddressForm.phone}
                           onChange={(e) => handleDifferentAddressChange('phone', e.target.value)}
-                          className={inputClass}
-                          placeholder="+91 98765 43210"
+                          className={`w-full rounded-xl border px-3.5 py-2.5 text-xs outline-none transition ${
+                            checkoutFieldErrors.phone
+                              ? 'border-rose-500 ring-1 ring-rose-500 bg-rose-50/20'
+                              : 'border-neutral-200 bg-white focus:border-[#5C0F17]'
+                          }`}
+                          placeholder="e.g. 9876543210"
                         />
+                        {checkoutFieldErrors.phone && (
+                          <p className="mt-1 text-[11px] font-semibold text-rose-600">
+                            {checkoutFieldErrors.phone}
+                          </p>
+                        )}
                       </div>
                     </div>
 
                     <div>
                       <label className="text-xs font-bold text-neutral-700">Street Address *</label>
                       <input
-                        required
                         value={differentAddressForm.street}
                         onChange={(e) => handleDifferentAddressChange('street', e.target.value)}
-                        className={inputClass}
+                        className={`w-full rounded-xl border px-3.5 py-2.5 text-xs outline-none transition ${
+                          checkoutFieldErrors.street
+                            ? 'border-rose-500 ring-1 ring-rose-500 bg-rose-50/20'
+                            : 'border-neutral-200 bg-white focus:border-[#5C0F17]'
+                        }`}
                         placeholder="House / Flat #, Apartment, Street name"
                       />
+                      {checkoutFieldErrors.street && (
+                        <p className="mt-1 text-[11px] font-semibold text-rose-600">
+                          {checkoutFieldErrors.street}
+                        </p>
+                      )}
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
                         <label className="text-xs font-bold text-neutral-700">City *</label>
                         <input
-                          required
                           value={differentAddressForm.city}
                           onChange={(e) => handleDifferentAddressChange('city', e.target.value)}
-                          className={inputClass}
+                          className={`w-full rounded-xl border px-3.5 py-2.5 text-xs outline-none transition ${
+                            checkoutFieldErrors.city
+                              ? 'border-rose-500 ring-1 ring-rose-500 bg-rose-50/20'
+                              : 'border-neutral-200 bg-white focus:border-[#5C0F17]'
+                          }`}
                           placeholder="City"
                         />
+                        {checkoutFieldErrors.city && (
+                          <p className="mt-1 text-[11px] font-semibold text-rose-600">
+                            {checkoutFieldErrors.city}
+                          </p>
+                        )}
                       </div>
                       <div>
                         <label className="text-xs font-bold text-neutral-700">State *</label>
                         <input
-                          required
                           value={differentAddressForm.state}
                           onChange={(e) => handleDifferentAddressChange('state', e.target.value)}
-                          className={inputClass}
+                          className={`w-full rounded-xl border px-3.5 py-2.5 text-xs outline-none transition ${
+                            checkoutFieldErrors.state
+                              ? 'border-rose-500 ring-1 ring-rose-500 bg-rose-50/20'
+                              : 'border-neutral-200 bg-white focus:border-[#5C0F17]'
+                          }`}
                           placeholder="State"
                         />
+                        {checkoutFieldErrors.state && (
+                          <p className="mt-1 text-[11px] font-semibold text-rose-600">
+                            {checkoutFieldErrors.state}
+                          </p>
+                        )}
                       </div>
                       <div>
                         <label className="text-xs font-bold text-neutral-700">PIN Code *</label>
                         <input
-                          required
                           maxLength={6}
                           value={differentAddressForm.postalCode}
-                          onChange={(e) => handleDifferentAddressChange('postalCode', e.target.value.replace(/\D/g, ''))}
-                          className={inputClass}
+                          onChange={(e) =>
+                            handleDifferentAddressChange(
+                              'postalCode',
+                              e.target.value.replace(/\D/g, '')
+                            )
+                          }
+                          className={`w-full rounded-xl border px-3.5 py-2.5 text-xs outline-none transition ${
+                            checkoutFieldErrors.postalCode
+                              ? 'border-rose-500 ring-1 ring-rose-500 bg-rose-50/20'
+                              : 'border-neutral-200 bg-white focus:border-[#5C0F17]'
+                          }`}
                           placeholder="6 digits"
                         />
+                        {checkoutFieldErrors.postalCode && (
+                          <p className="mt-1 text-[11px] font-semibold text-rose-600">
+                            {checkoutFieldErrors.postalCode}
+                          </p>
+                        )}
                       </div>
                     </div>
 
