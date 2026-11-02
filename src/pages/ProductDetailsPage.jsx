@@ -24,6 +24,7 @@ import ProductSection from "../components/home/ProductSection";
 import PromotionalBannerCarousel from "../components/home/PromotionalBannerCarousel";
 import FullscreenImageViewer from "../components/products/FullscreenImageViewer";
 import { api } from "../services/api";
+import { resolveImageUrl } from "../utils/imageHelper";
 
 export default function ProductDetailsPage() {
   const { products, banners } = useCatalog();
@@ -176,9 +177,18 @@ export default function ProductDetailsPage() {
   const prodId = product._id || product.id;
   const isFavourite = favourites.some((item) => (item._id || item.id) === prodId);
 
-  const images = product.images?.length
+  const rawImages = product.images?.length
     ? product.images
+    : product.primaryImage
+    ? [product.primaryImage]
     : ["https://images.unsplash.com/photo-1609252925148-b0f1b515e111?w=800&auto=format&fit=crop&q=80"];
+
+  const images = rawImages.map((img) =>
+    resolveImageUrl(
+      img,
+      "https://images.unsplash.com/photo-1609252925148-b0f1b515e111?w=800&auto=format&fit=crop&q=80"
+    )
+  );
 
   const currentImage = images[activeImageIndex] || images[0];
 

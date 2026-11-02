@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { resolveImageUrl } from "../../utils/imageHelper";
 
 export default function DivineCardsSection({ cards = [] }) {
   const displayCards = cards && cards.length >= 2
@@ -56,7 +57,7 @@ export default function DivineCardsSection({ cards = [] }) {
             {/* Background Image */}
             <div className="absolute inset-0">
               <img
-                src={card.imageUrl}
+                src={resolveImageUrl(card.imageUrl)}
                 alt={card.title}
                 className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
               />

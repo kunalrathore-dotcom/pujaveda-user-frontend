@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Heart, ShoppingBag, Eye } from "lucide-react";
 
 import { useStore } from "../../context/StoreContext";
+import { resolveImageUrl } from "../../utils/imageHelper";
 
 export default function ProductCard({ product, index = 0 }) {
   const { addToCart, favourites, toggleFavourite } = useStore();
@@ -10,10 +11,11 @@ export default function ProductCard({ product, index = 0 }) {
   const prodId = product._id || product.id;
   const isFavourite = favourites.some((item) => (item._id || item.id) === prodId);
 
-  const productImage =
-    product.images?.[0] ||
-    product.image ||
-    "https://images.unsplash.com/photo-1609252925148-b0f1b515e111?w=500&auto=format&fit=crop&q=80";
+  const rawImage = product.primaryImage || product.images?.[0] || product.image;
+  const productImage = resolveImageUrl(
+    rawImage,
+    "https://images.unsplash.com/photo-1609252925148-b0f1b515e111?w=500&auto=format&fit=crop&q=80"
+  );
 
   return (
     <motion.article

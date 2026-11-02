@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, ArrowRight, Sparkles } from "lucide-react";
+import { resolveImageUrl } from "../../utils/imageHelper";
 
 // Fallback devotional banners if none configured in MongoDB
 const DEFAULT_BANNERS = [
@@ -90,7 +91,7 @@ export default function PromotionalBannerCarousel({ banners = [] }) {
             {/* Background Image with Gradient Overlay */}
             <div className="absolute inset-0">
               <img
-                src={banner.imageUrl}
+                src={resolveImageUrl(banner.imageUrl)}
                 alt={banner.title}
                 className="h-full w-full object-cover object-center"
               />

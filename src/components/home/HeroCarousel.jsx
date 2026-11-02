@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, ArrowRight, Sparkles } from "lucide-react";
+import { resolveImageUrl } from "../../utils/imageHelper";
 
 // Fallback devotional hero banners if none exist in MongoDB
 const DEFAULT_HERO_BANNERS = [
@@ -111,7 +112,7 @@ export default function HeroCarousel({ banners = [] }) {
               {/* Background Image with Rich Warm Overlay */}
               <div className="absolute inset-0">
                 <img
-                  src={currentBanner.imageUrl}
+                  src={resolveImageUrl(currentBanner.imageUrl)}
                   alt={currentBanner.title}
                   className="h-full w-full object-cover object-center"
                 />
