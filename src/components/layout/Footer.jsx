@@ -6,6 +6,7 @@ import {
   MapPin,
   ShieldCheck,
   CheckCircle2,
+  BookOpen,
 } from 'lucide-react';
 
 import { useCatalog } from '../../context/CatalogContext';
@@ -51,6 +52,12 @@ export default function Footer() {
               Information
             </h3>
             <ul className="mt-4 space-y-2.5 text-xs text-[#E8DDCE]">
+              <li>
+                <Link to="/blog" className="hover:text-[#F6D686] transition font-bold text-[#F6D686] flex items-center gap-1.5">
+                  <BookOpen size={13} className="text-[#DA9B26]" />
+                  Pujaveda Journal (Blog)
+                </Link>
+              </li>
               <li>
                 <Link to="/" className="hover:text-[#F6D686] transition">
                   About Pujaveda

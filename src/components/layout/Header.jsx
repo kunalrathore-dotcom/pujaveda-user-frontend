@@ -12,6 +12,7 @@ import {
   Phone,
   Package,
   Sparkles,
+  BookOpen,
 } from "lucide-react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 
@@ -318,6 +319,21 @@ export default function Header() {
                 </NavLink>
               );
             })}
+
+            {/* Pujaveda Journal Editorial Link */}
+            <NavLink
+              to="/blog"
+              className={({ isActive: navActive }) =>
+                `whitespace-nowrap px-3.5 py-1 font-black transition-colors flex items-center gap-1.5 ${
+                  navActive || location.pathname.startsWith("/blog")
+                    ? "text-[#5C0F17] border-b-2 border-[#5C0F17]"
+                    : "text-[#5C0F17] hover:text-[#E85D04]"
+                }`
+              }
+            >
+              <BookOpen size={13} className="text-[#DA9B26]" />
+              PUJAVEDA JOURNAL
+            </NavLink>
           </div>
         </div>
       </nav>
@@ -378,6 +394,17 @@ export default function Header() {
                       {cat.name}
                     </Link>
                   ))}
+                </div>
+
+                <div className="pt-2 border-t border-[#EEDBC5]/60 mt-3">
+                  <Link
+                    to="/blog"
+                    onClick={closeMenus}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-black uppercase text-[#5C0F17] bg-[#FAF5ED] hover:bg-[#F3E9DA]"
+                  >
+                    <BookOpen size={15} className="text-[#DA9B26]" />
+                    Pujaveda Journal
+                  </Link>
                 </div>
               </div>
             </div>
