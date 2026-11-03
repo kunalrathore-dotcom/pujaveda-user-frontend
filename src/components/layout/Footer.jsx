@@ -55,7 +55,7 @@ export default function Footer() {
               <li>
                 <Link to="/blog" className="hover:text-[#F6D686] transition font-bold text-[#F6D686] flex items-center gap-1.5">
                   <BookOpen size={13} className="text-[#DA9B26]" />
-                  Pujaveda Journal (Blog)
+                  Blog
                 </Link>
               </li>
               <li>

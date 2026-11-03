@@ -320,7 +320,7 @@ export default function Header() {
               );
             })}
 
-            {/* Pujaveda Journal Editorial Link */}
+            {/* Blog Link */}
             <NavLink
               to="/blog"
               className={({ isActive: navActive }) =>
@@ -332,7 +332,7 @@ export default function Header() {
               }
             >
               <BookOpen size={13} className="text-[#DA9B26]" />
-              PUJAVEDA JOURNAL
+              BLOG
             </NavLink>
           </div>
         </div>
@@ -403,7 +403,7 @@ export default function Header() {
                     className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-black uppercase text-[#5C0F17] bg-[#FAF5ED] hover:bg-[#F3E9DA]"
                   >
                     <BookOpen size={15} className="text-[#DA9B26]" />
-                    Pujaveda Journal
+                    Blog
                   </Link>
                 </div>
               </div>

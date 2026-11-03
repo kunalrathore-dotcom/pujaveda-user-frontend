@@ -125,11 +125,11 @@ export default function BlogListPage() {
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-[#FFFDF9] font-serif">
-            Pujaveda Journal
+            Blog
           </h1>
 
           <p className="mx-auto max-w-2xl text-xs sm:text-sm text-[#E8DDCE] leading-relaxed">
-            Authentic guides on sacred rituals, festival muhurats, home mandir traditions, and pure Vedic practices curated by revered Sanatan scholars.
+            Pujaveda Journal — Sacred knowledge, ritual guides & spiritual wisdom curated by revered Vedic scholars.
           </p>
 
           {/* Search Bar inside Hero */}
