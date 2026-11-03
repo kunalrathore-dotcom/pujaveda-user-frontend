@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   AlertCircle,
   ArrowLeft,
+  CreditCard,
 } from 'lucide-react';
 
 import { useStore } from '../context/StoreContext';

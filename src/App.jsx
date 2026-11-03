@@ -18,6 +18,7 @@ import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import VerifyOtpPage from "./pages/auth/VerifyOtpPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import ScrollToTop from "./components/common/ScrollToTop";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 
 function NotFoundPage() {
   return (
@@ -40,7 +41,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
-      <Routes>
+      <ErrorBoundary>
+        <Routes>
         {/* Customer authentication & password recovery */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -67,6 +69,7 @@ export default function App() {
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
-    </BrowserRouter>
+    </ErrorBoundary>
+  </BrowserRouter>
   );
 }
