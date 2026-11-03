@@ -55,7 +55,6 @@ export const api = {
         data.errors && typeof data.errors === "object" && !Array.isArray(data.errors)
           ? data.errors
           : {};
-      err.devOtp = data.devOtp;
       throw err;
     }
     return data;
@@ -76,7 +75,6 @@ export const api = {
         data.errors && typeof data.errors === "object" && !Array.isArray(data.errors)
           ? data.errors
           : {};
-      err.devOtp = data.devOtp;
       throw err;
     }
     return data;

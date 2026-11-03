@@ -13,6 +13,8 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
+
     const trimmedEmail = email.trim();
 
     if (!trimmedEmail) {
@@ -20,8 +22,14 @@ export default function ForgotPasswordPage() {
       return;
     }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
     setLoading(true);
     setError("");
+    setSuccessMessage("");
 
     try {
       const res = await authService.forgotPassword(trimmedEmail);
@@ -30,14 +38,7 @@ export default function ForgotPasswordPage() {
         navigate(`/verify-otp?email=${encodeURIComponent(trimmedEmail)}`);
       }, 1500);
     } catch (err) {
-      if (err.message && err.message.includes("Unable to deliver OTP email")) {
-        setError(err.message + " Check terminal for [DEV NOTICE] OTP if testing locally.");
-        setTimeout(() => {
-          navigate(`/verify-otp?email=${encodeURIComponent(trimmedEmail)}`);
-        }, 2000);
-      } else {
-        setError(err.message || "Unable to request password reset code.");
-      }
+      setError(err.message || "Unable to request password reset code. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -82,9 +83,10 @@ export default function ForgotPasswordPage() {
                 type="email"
                 maxLength={254}
                 value={email}
+                disabled={loading}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
-                className="w-full rounded-xl border border-[#EEDBC5] bg-white px-4 py-3 pl-11 text-sm outline-none transition focus:border-[#DA9B26] focus:ring-2 focus:ring-[#DA9B26]/10"
+                className="w-full rounded-xl border border-[#EEDBC5] bg-white px-4 py-3 pl-11 text-sm outline-none transition focus:border-[#DA9B26] focus:ring-2 focus:ring-[#DA9B26]/10 disabled:bg-neutral-100 disabled:cursor-not-allowed"
                 required
               />
               <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#756255]" size={18} />

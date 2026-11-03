@@ -36,7 +36,16 @@ export default function BlogListPage() {
     const fetchCats = async () => {
       try {
         const cats = await blogService.getCategories();
-        setCategories(cats || []);
+        if (Array.isArray(cats) && cats.length > 1) {
+          // Reorder: Move the category currently at the end to the start of the category list
+          // so it is immediately visible at the leftmost position without requiring horizontal scroll
+          const reorderedCats = [...cats];
+          const lastItem = reorderedCats.pop();
+          reorderedCats.unshift(lastItem);
+          setCategories(reorderedCats);
+        } else {
+          setCategories(cats || []);
+        }
       } catch (err) {
         console.error("Categories fetch error:", err);
       }

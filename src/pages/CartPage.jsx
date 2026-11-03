@@ -349,7 +349,7 @@ export default function CartPage() {
           return;
         }
 
-        // For COD or direct methods
+        // Fallback order completion if direct capture
         setOrderSuccess(res.order);
         clearCart();
         setCheckoutOpen(false);
@@ -927,44 +927,20 @@ export default function CartPage() {
                 )}
               </div>
 
-              {/* Payment Method Selector */}
+              {/* Payment Method */}
               <div>
                 <label className="text-xs font-bold text-neutral-700">Payment Method</label>
-                <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <label
-                    className={`flex cursor-pointer items-center gap-2 rounded-xl border p-3 text-xs font-semibold ${
-                      paymentMethod === 'razorpay'
-                        ? 'border-[#5C0F17] bg-rose-50 text-[#5C0F17]'
-                        : 'border-neutral-200'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="razorpay"
-                      checked={paymentMethod === 'razorpay'}
-                      onChange={() => setPaymentMethod('razorpay')}
-                      className="accent-[#5C0F17]"
-                    />
-                    Razorpay (UPI / Cards / NetBanking)
-                  </label>
-                  <label
-                    className={`flex cursor-pointer items-center gap-2 rounded-xl border p-3 text-xs font-semibold ${
-                      paymentMethod === 'cod'
-                        ? 'border-[#5C0F17] bg-rose-50 text-[#5C0F17]'
-                        : 'border-neutral-200'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="cod"
-                      checked={paymentMethod === 'cod'}
-                      onChange={() => setPaymentMethod('cod')}
-                      className="accent-[#5C0F17]"
-                    />
-                    Cash on Delivery
-                  </label>
+                <div className="mt-2 rounded-xl border border-[#5C0F17] bg-rose-50/60 p-3.5 text-xs">
+                  <div className="flex items-center gap-2 text-xs font-bold text-[#5C0F17]">
+                    <CreditCard size={16} className="text-[#5C0F17]" />
+                    <span>Razorpay Secure Online Checkout</span>
+                    <span className="ml-auto rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800">
+                      100% Secure
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-neutral-600 leading-relaxed">
+                    Pay securely using UPI (Google Pay, PhonePe, Paytm), Credit / Debit Cards, or NetBanking.
+                  </p>
                 </div>
               </div>
 

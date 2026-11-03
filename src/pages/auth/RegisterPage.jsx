@@ -29,11 +29,12 @@ export default function RegisterPage() {
   const validate = () => {
     const nextErrors = {};
 
-    if (!form.name.trim()) {
+    const trimmedName = form.name.trim();
+    if (!trimmedName) {
       nextErrors.name = "Full name is required.";
-    } else if (form.name.trim().length < 2) {
-      nextErrors.name = "Name must contain at least 2 characters.";
-    } else if (form.name.trim().length > 50) {
+    } else if (trimmedName.length < 3) {
+      nextErrors.name = "Name must contain at least 3 characters.";
+    } else if (trimmedName.length > 50) {
       nextErrors.name = "Name cannot exceed 50 characters.";
     }
 

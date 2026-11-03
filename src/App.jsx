@@ -11,6 +11,7 @@ import OrdersPage from "./pages/OrdersPage";
 import ProfilePage from "./pages/ProfilePage";
 import BlogListPage from "./pages/BlogListPage";
 import BlogDetailPage from "./pages/BlogDetailPage";
+import LegalPage from "./pages/LegalPage";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
@@ -59,6 +60,9 @@ export default function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/blog" element={<BlogListPage />} />
           <Route path="/blog/:slug" element={<BlogDetailPage />} />
+          <Route path="/terms-and-conditions" element={<LegalPage slug="terms-and-conditions" />} />
+          <Route path="/privacy-policy" element={<LegalPage slug="privacy-policy" />} />
+          <Route path="/legal/:slug" element={<LegalPage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

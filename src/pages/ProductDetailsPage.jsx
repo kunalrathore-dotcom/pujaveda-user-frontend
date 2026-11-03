@@ -16,6 +16,7 @@ import {
   Sparkles,
   Package,
   Maximize2,
+  Share2,
 } from "lucide-react";
 
 import { useStore } from "../context/StoreContext";
@@ -23,6 +24,7 @@ import { useCatalog } from "../context/CatalogContext";
 import ProductSection from "../components/home/ProductSection";
 import PromotionalBannerCarousel from "../components/home/PromotionalBannerCarousel";
 import FullscreenImageViewer from "../components/products/FullscreenImageViewer";
+import ProductShareModal from "../components/products/ProductShareModal";
 import { api } from "../services/api";
 import { resolveImageUrl } from "../utils/imageHelper";
 
@@ -47,6 +49,7 @@ export default function ProductDetailsPage() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [isShareOpen, setIsShareOpen] = useState(false);
 
   const { addToCart, favourites, toggleFavourite } = useStore();
   const autoPlayTimerRef = useRef(null);
@@ -512,6 +515,15 @@ export default function ProductDetailsPage() {
                 >
                   <Heart size={20} fill={isFavourite ? "currentColor" : "none"} />
                 </button>
+
+                <button
+                  type="button"
+                  aria-label="Share this sacred product"
+                  onClick={() => setIsShareOpen(true)}
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#EEDBC5] bg-white text-[#2D1C13] hover:border-[#5C0F17] hover:text-[#5C0F17] transition shadow-xs"
+                >
+                  <Share2 size={20} />
+                </button>
               </div>
 
               {/* Delivery / Pincode Availability Box */}
@@ -732,6 +744,13 @@ export default function ProductDetailsPage() {
         onClose={() => setIsFullscreenOpen(false)}
         onNavigate={(idx) => setActiveImageIndex(idx)}
         productName={product.name}
+      />
+
+      {/* Product Social Sharing Modal */}
+      <ProductShareModal
+        product={product}
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
       />
     </div>
   );
