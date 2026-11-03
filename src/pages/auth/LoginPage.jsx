@@ -159,6 +159,16 @@ export default function LoginPage() {
           </Link>
         </p>
 
+        <div className="mt-5 flex items-center justify-center gap-3 text-[11px] sm:text-xs text-[#756255]">
+          <Link to="/terms-and-conditions" className="hover:text-[#5C0F17] hover:underline">
+            Terms & Conditions
+          </Link>
+          <span className="text-[#DA9B26]">•</span>
+          <Link to="/privacy-policy" className="hover:text-[#5C0F17] hover:underline">
+            Privacy Policy
+          </Link>
+        </div>
+
         <div className="mt-8 border-t border-[#EEDBC5]/70 pt-6 text-center">
           <p className="text-xs text-[#756255]">Store Administrator?</p>
           <a

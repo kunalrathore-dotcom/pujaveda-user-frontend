@@ -221,6 +221,23 @@ export default function RegisterPage() {
             </p>
           )}
 
+          <p className="text-[11px] sm:text-xs text-[#756255] text-center leading-relaxed">
+            By creating an account, you acknowledge our{" "}
+            <Link
+              to="/terms-and-conditions"
+              className="font-semibold text-[#5C0F17] hover:underline"
+            >
+              Terms & Conditions
+            </Link>{" "}
+            and{" "}
+            <Link
+              to="/privacy-policy"
+              className="font-semibold text-[#5C0F17] hover:underline"
+            >
+              Privacy Policy
+            </Link>.
+          </p>
+
           <button
             type="submit"
             disabled={loading}
