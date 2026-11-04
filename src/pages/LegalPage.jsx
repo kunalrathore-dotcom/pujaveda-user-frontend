@@ -126,15 +126,7 @@ export default function LegalPage({ slug: propSlug }) {
 
             {/* Document Content */}
             <div
-              className="prose prose-sm sm:prose-base max-w-none text-[#3D2619] leading-relaxed
-                prose-headings:font-serif prose-headings:font-bold prose-headings:text-[#5C0F17]
-                prose-h2:text-xl sm:prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-3 prose-h2:border-b prose-h2:border-[#EEDBC5]/70 prose-h2:pb-2
-                prose-h3:text-lg prose-h3:mt-6 prose-h3:mb-2
-                prose-p:text-xs sm:prose-p:text-sm prose-p:leading-relaxed prose-p:text-[#4A382C]
-                prose-ul:list-disc prose-ul:pl-5 prose-ul:space-y-1.5 prose-ul:text-xs sm:prose-ul:text-sm prose-ul:text-[#4A382C]
-                prose-ol:list-decimal prose-ol:pl-5 prose-ol:space-y-1.5 prose-ol:text-xs sm:prose-ol:text-sm prose-ol:text-[#4A382C]
-                prose-strong:font-bold prose-strong:text-[#3D2619]
-                prose-a:text-[#5C0F17] prose-a:underline hover:prose-a:text-[#DA9B26]"
+              className="legal-document-body max-w-none text-[#3D2619] leading-relaxed"
               dangerouslySetInnerHTML={{ __html: page.content }}
             />
 
