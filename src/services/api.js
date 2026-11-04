@@ -27,9 +27,22 @@ const handleAuthError = (res) => {
   }
 };
 
+const safeFetch = async (url, options) => {
+  try {
+    return await fetch(url, options);
+  } catch (err) {
+    if (err instanceof TypeError && (err.message === "Failed to fetch" || err.message.includes("NetworkError"))) {
+      throw new Error(
+        `Unable to reach backend server at ${API_URL}. Please ensure the server is running.`
+      );
+    }
+    throw err;
+  }
+};
+
 export const api = {
   async get(endpoint) {
-    const res = await fetch(`${API_URL}${endpoint}`, {
+    const res = await safeFetch(`${API_URL}${endpoint}`, {
       headers: getHeaders(),
     });
     const data = await res.json();
@@ -41,7 +54,7 @@ export const api = {
   },
 
   async post(endpoint, body, isMultipart = false) {
-    const res = await fetch(`${API_URL}${endpoint}`, {
+    const res = await safeFetch(`${API_URL}${endpoint}`, {
       method: "POST",
       headers: getHeaders(isMultipart),
       body: isMultipart ? body : JSON.stringify(body),
@@ -61,7 +74,7 @@ export const api = {
   },
 
   async put(endpoint, body) {
-    const res = await fetch(`${API_URL}${endpoint}`, {
+    const res = await safeFetch(`${API_URL}${endpoint}`, {
       method: "PUT",
       headers: getHeaders(),
       body: JSON.stringify(body),
@@ -81,7 +94,7 @@ export const api = {
   },
 
   async delete(endpoint) {
-    const res = await fetch(`${API_URL}${endpoint}`, {
+    const res = await safeFetch(`${API_URL}${endpoint}`, {
       method: "DELETE",
       headers: getHeaders(),
     });
