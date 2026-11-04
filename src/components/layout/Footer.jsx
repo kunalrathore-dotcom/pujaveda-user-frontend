@@ -180,8 +180,6 @@ export default function Footer() {
             <Link to="/privacy-policy" className="hover:underline">Privacy Policy</Link>
             <span>•</span>
             <Link to="/terms-and-conditions" className="hover:underline">Terms & Conditions</Link>
-            <span>•</span>
-            <Link to="/terms-and-conditions" className="hover:underline">Shipping & Purity Policy</Link>
           </div>
 
           {/* Copyright */}
